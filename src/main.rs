@@ -4,7 +4,7 @@ fn main() {
     let sum = sum_array(&arr);
     println!("Сумма элементов массива: {}", sum);
     let mut close = String::new();
-    println!("Нажмите Enter для закрытия программы");
+    println!("Нажмите Enter для закрытия программы.");
     io::stdin().read_line(&mut close).unwrap();
 }
 fn read_array() -> Vec<i32> {
