@@ -26,7 +26,7 @@ fn read_array() -> Vec<i32> {
     
     let mut array = Vec::with_capacity(length);
     println!("Введите элементы массива, каждый с новой строки:");
-    for i in 0..length {
+    for _i in 0..length {
         let mut input_item = String::new();
         match io::stdin().read_line(&mut input_item){
             Ok(_) => {
