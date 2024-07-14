@@ -1,6 +1,9 @@
+use actix_web::{get, post, web, web::Bytes, App, HttpResponse, HttpServer, Responder};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::io;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 enum Role {
     Tank,
     Healer,
@@ -8,12 +11,35 @@ enum Role {
     Others,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 struct Player {
     id: u32,
     role: Role,
     queue_time: u32,
 }
+
+#[get("/")]
+async fn echo_request(query: web::Query<std::collections::HashMap<String, String>>) -> HttpResponse {
+    
+    let data = match query.get("data") {
+        Some(value) => value,
+        None => return HttpResponse::BadRequest().body("Parameter 'data' is missing"),
+    };
+
+    println!("Запрос: {}", data);
+    
+    HttpResponse::Ok().finish()
+}
+
+async fn handle_request(players: web::Json<Vec<Player>>) -> HttpResponse {
+
+    let players_data = players.into_inner();
+
+    println!("Received players: {:?}", players_data);
+
+    HttpResponse::Ok().finish()
+}
+//
 
 trait GroupCreator {
     fn create_groups(&mut self) -> Vec<Vec<Player>>;
@@ -69,17 +95,12 @@ impl GroupCreator for Vec<Player> {
     
 }
 
-fn main() {
-    let mut players = vec![
-        Player { id: 1, role: Role::Tank, queue_time: 3 },
-            Player { id: 2, role: Role::Damager, queue_time: 8 },
-            Player { id: 3, role: Role::Healer, queue_time: 2 },
-            Player { id: 4, role: Role::Others, queue_time: 7 },
-            Player { id: 5, role: Role::Damager, queue_time: 1 },
-            Player { id: 6, role: Role::Tank, queue_time: 10 },
-            Player { id: 7, role: Role::Healer, queue_time: 6 },
-            Player { id: 8, role: Role::Others, queue_time: 3 },
-    ];
+//
+async fn handle_post(body: Bytes) -> HttpResponse {
+    let mut players: Vec<Player> = match serde_json::from_slice(&body) {
+        Ok(players) => players,
+        Err(_) => return HttpResponse::BadRequest().body("Invalid JSON"),
+    };
 
     let groups = players.create_groups();
 
@@ -87,13 +108,22 @@ fn main() {
         println!("Group {}: {:?}", i + 1, group);
     }
 
-    delay();
+    println!("Запрос: {:?}", players);
+
+    HttpResponse::Ok().body("Ok!")
 }
 
-fn delay() {
-    let mut close = String::new();
-    println!("Нажмите Enter для закрытия программы");
-    io::stdin().read_line(&mut close).unwrap();
+
+#[actix_web::main]
+async fn main() -> std::io::Result<()> {
+    HttpServer::new(|| {
+        App::new()
+            .route("/mm", web::post().to(handle_post))
+            .service(echo_request)
+    })
+    .bind("127.0.0.1:80")?
+    .run()
+    .await
 }
 
 #[cfg(test)]
